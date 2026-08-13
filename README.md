@@ -8,8 +8,8 @@
     <td><img src="docs/panel-2.png" alt="面板截图" width="400" /></td>
   </tr>
   <tr>
-    <td><img src="docs/panel-3.png" alt="折叠状态" width="400" /></td>
     <td><img src="docs/panel-4.png" alt="悬浮球" width="400" /></td>
+    <td><img src="docs/panel-3.png" alt="折叠状态" width="400" /></td>
   </tr>
 </table>
 
