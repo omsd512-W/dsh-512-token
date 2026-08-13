@@ -98,3 +98,7 @@ npm run install:local
 - npm 包：https://www.npmjs.com/package/dsh-token-stats
 
 迁入第三方代码必须保留原 LICENSE 与署名；活跃且有上游的第三方依赖优先通过 npm 依赖引用，不搬代码。
+
+## 友情链接
+
+- [Linux.do](https://linux.do/)
