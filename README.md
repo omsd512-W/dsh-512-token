@@ -2,6 +2,9 @@
 
 为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web 界面提供浮动的 Token 用量统计面板。安装后页面右下角出现可拖动的浮层，实时展示输入 / 输出 / 缓存 / 命中率 / 按提供商与模型维度的用量明细，以及当月每日热力图和会话级逐请求记录。
 
+![面板截图](docs/panel-1.png)
+![面板截图](docs/panel-2.png)
+
 ## 功能
 
 - **总用量概览**：输入、输出、总计、缓存读取 / 写入、缓存命中率、会话数、步数
