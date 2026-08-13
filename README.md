@@ -90,6 +90,11 @@ npm run check
 npm run install:local
 ```
 
-## License
+## 来源与版权
 
-MIT
+本项目 `dsh-token-stats` 由作者 **H1a3x** 个人开发，采用 [MIT](LICENSE) 许可证。
+
+- 源码仓库：https://github.com/H1a3x/dsh-token-stats
+- npm 包：https://www.npmjs.com/package/dsh-token-stats
+
+迁入第三方代码必须保留原 LICENSE 与署名；活跃且有上游的第三方依赖优先通过 npm 依赖引用，不搬代码。
