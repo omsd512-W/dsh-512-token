@@ -1,0 +1,44 @@
+{
+  "name": "dsh-token-stats",
+  "version": "0.1.0",
+  "description": "Floating draggable token usage statistics panel for DeepSeek Harness: totals, cache & hit rate, per-provider usage, 30-day heatmap, per-session detail and per-request records.",
+  "type": "module",
+  "main": "lib/index.js",
+  "exports": {
+    ".": "./lib/index.js",
+    "./client": "./lib/client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "dsh": {
+    "client": {
+      "platform": "web"
+    }
+  },
+  "scripts": {
+    "check": "node --check lib/index.js"
+  },
+  "keywords": [
+    "deepseek-harness",
+    "dsh",
+    "cordis",
+    "plugin",
+    "token",
+    "usage",
+    "statistics",
+    "panel"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/YOUR-GITHUB-USERNAME/dsh-token-stats.git"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "^4.0.1",
+    "react": "^18.0.0 || ^19.0.0"
+  }
+}
