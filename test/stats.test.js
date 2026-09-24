@@ -32,6 +32,7 @@ test('rc.1 session observations count settled attempts once', async () => {
     inject: (_names, callback) => callback({ effect: (register) => register(), webServer: { register: (value) => { route = value } } }),
   }
   apply(ctx)
+  assert.equal(route.path, '/dsh-512-token')
   async function read() {
     let payload
     await route.handler({}, { setHeader() {}, end: (body) => { payload = JSON.parse(body) } })

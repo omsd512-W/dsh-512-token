@@ -48,7 +48,7 @@ dsh plugin --profile web add .
 ## 工作原理
 
 ```
-lib/index.js     宿主半：增量折叠会话日志，聚合统计数据，通过 HTTP 路由 /token-stats 提供查询
+lib/index.js     宿主半：增量折叠会话日志，聚合统计数据，通过 HTTP 路由 /dsh-512-token 提供查询
 lib/client.js    浏览器半：面板 UI（shell module-table 格式，无需构建步骤）
 cordis.patch.yml   dsh 插件管理器加载的组合行
 ```

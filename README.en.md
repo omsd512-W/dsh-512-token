@@ -48,7 +48,7 @@ Run `dsh plugin --profile web remove dsh-512-token`, then restart dsh.
 ## How It Works
 
 ```
-lib/index.js       Host half: incrementally folds session logs, aggregates stats, serves via HTTP route /token-stats
+lib/index.js       Host half: incrementally folds session logs, aggregates stats, serves via HTTP route /dsh-512-token
 lib/client.js      Browser half: panel UI (shell module-table format, no build step)
 cordis.patch.yml   Bundle layer loaded by the dsh plugin manager
 ```
