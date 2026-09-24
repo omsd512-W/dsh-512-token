@@ -1,8 +1,8 @@
 简体中文 | [English](README.en.md)
 
-# dsh-token-stats
+# dsh-512-token
 
-为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web 界面提供浮动的 Token 用量统计面板。安装后页面右下角出现可拖动的浮层，实时展示输入 / 输出 / 缓存 / 命中率 / 按提供商与模型维度的用量明细，以及当月每日热力图和会话级逐请求记录。
+为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) v0.1.7-rc.1 Web 界面提供浮动的 Token 用量统计面板。安装后页面右下角出现可拖动的浮层，实时展示输入 / 输出 / 缓存 / 命中率 / 按提供商与模型维度的用量明细，以及当月每日热力图和会话级逐请求记录。
 
 <table>
   <tr>
@@ -28,52 +28,32 @@
 ## 安装
 
 ```bash
-npx dsh-token-stats install
+dsh plugin --profile web add github:omsd512-W/dsh-512-token
 ```
 
-安装器会自动完成以下操作（幂等，可重复运行）：
-
-1. 将包安装到 `$DSH_HOME/profiles/node_modules/dsh-token-stats`（dsh 插件解析根，真实目录）
-2. 将组合行写入 `$DSH_HOME/profiles/<profile>/cordis.patch.yml`
-
-完成后**重启 dsh 并刷新浏览器页面**即可看到面板。重启是唯一需要手动完成的步骤——宿主模块与组合在进程内缓存，插件无法安全地重启自己的宿主进程。
-
-### 可选参数
-
-| 参数 | 说明 |
-|------|------|
-| `--profile <name>` | 指定目标 profile（默认 `web`） |
-| `--force` | 重新覆盖已安装的包 |
+插件自带 `cordis.patch.yml` 组合层，`dsh plugin` 会把它加入 `web` profile。完成后重启 dsh 并刷新页面。
 
 ### 从源码本地安装
 
 ```bash
-git clone https://github.com/H1a3x/dsh-token-stats.git
-cd dsh-token-stats
-node scripts/install.js --from . --force
+git clone https://github.com/omsd512-W/dsh-512-token.git
+cd dsh-512-token
+dsh plugin --profile web add .
 ```
 
 ## 卸载
 
-删除 `$DSH_HOME/profiles/node_modules/dsh-token-stats` 目录，从 `cordis.patch.yml` 移除以下行，然后重启 dsh：
-
-```yaml
-- insert:
-    - id: token-stats
-      name: dsh-token-stats
-```
-
-也可以保留组合行，在 Harness 设置页的插件清单里禁用本插件。
+运行 `dsh plugin --profile web remove dsh-512-token`，然后重启 dsh。
 
 ## 工作原理
 
 ```
 lib/index.js     宿主半：增量折叠会话日志，聚合统计数据，通过 HTTP 路由 /token-stats 提供查询
 lib/client.js    浏览器半：面板 UI（shell module-table 格式，无需构建步骤）
-scripts/install.js   一键安装器：拷贝包 + 写入组合行
+cordis.patch.yml   dsh 插件管理器加载的组合行
 ```
 
-**数据来源**：Harness 的 `tokenUsage` / `sessionStats` 投影（provider 上报值）叠加插件对会话日志的增量折叠（`request/header` + `assistant/message` usage）。历史会话读取一次后缓存，增量更新仅读取上次水位线之后的新事件。
+**数据来源**：Harness 的 `tokenUsage` / `sessionStats` 投影（provider 上报值）叠加插件对会话日志的增量折叠（`request/header` + `assistant/message` / `assistant/attempt` 用量）。每次通过 `sessionQuery.observeSession` 读取一致的会话快照，折叠时跳过已处理的事件。
 
 **插件装载契约**：
 
@@ -88,13 +68,13 @@ scripts/install.js   一键安装器：拷贝包 + 写入组合行
 # 语法检查
 npm run check
 
-# 本地安装验证
-npm run install:local
+# 从当前目录安装到 web profile
+dsh plugin --profile web add .
 ```
 
 ## 来源与版权
 
-本项目 `dsh-token-stats` 由作者 **H1a3x** 个人开发，采用 [MIT](LICENSE) 许可证。
+本项目基于作者 **H1a3x** 的 `dsh-token-stats`，适配 DeepSeek Harness v0.1.7-rc.1；沿用 [MIT](LICENSE) 许可证并保留原作者署名。
 
 - 源码仓库：https://github.com/H1a3x/dsh-token-stats
 - npm 包：https://www.npmjs.com/package/dsh-token-stats

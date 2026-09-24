@@ -1,8 +1,8 @@
 [简体中文](README.md) | English
 
-# dsh-token-stats
+# dsh-512-token
 
-A floating token usage statistics panel for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) Web interface. After installation, a draggable overlay appears in the bottom-right corner, displaying real-time input / output / cache / hit rate, per-provider and per-model usage breakdowns, a current-month daily heatmap, and per-session request-level records.
+A floating token usage statistics panel for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) v0.1.7-rc.1 Web interface. After installation, a draggable overlay appears in the bottom-right corner, displaying real-time input / output / cache / hit rate, per-provider and per-model usage breakdowns, a current-month daily heatmap, and per-session request-level records.
 
 <table>
   <tr>
@@ -28,52 +28,32 @@ A floating token usage statistics panel for the [DeepSeek Harness](https://githu
 ## Installation
 
 ```bash
-npx dsh-token-stats install
+dsh plugin --profile web add github:omsd512-W/dsh-512-token
 ```
 
-The installer automatically (idempotent, safe to re-run):
-
-1. Installs the package into `$DSH_HOME/profiles/node_modules/dsh-token-stats` (the dsh plugin resolution root, a real directory)
-2. Writes the composition row into `$DSH_HOME/profiles/<profile>/cordis.patch.yml`
-
-Then **restart dsh and refresh the browser page** to see the panel. Restarting is the only manual step — host modules and compositions are cached in-process; a plugin cannot safely restart its own host process.
-
-### Options
-
-| Flag | Description |
-|------|-------------|
-| `--profile <name>` | Target profile (default `web`) |
-| `--force` | Re-overwrite the installed package |
+The package contributes its own `cordis.patch.yml` bundle layer. Restart dsh and refresh the page after installation.
 
 ### Install from Source
 
 ```bash
-git clone https://github.com/H1a3x/dsh-token-stats.git
-cd dsh-token-stats
-node scripts/install.js --from . --force
+git clone https://github.com/omsd512-W/dsh-512-token.git
+cd dsh-512-token
+dsh plugin --profile web add .
 ```
 
 ## Uninstall
 
-Remove the `$DSH_HOME/profiles/node_modules/dsh-token-stats` directory, delete the following lines from `cordis.patch.yml`, then restart dsh:
-
-```yaml
-- insert:
-    - id: token-stats
-      name: dsh-token-stats
-```
-
-You can also keep the composition row and disable the plugin in the Harness settings page.
+Run `dsh plugin --profile web remove dsh-512-token`, then restart dsh.
 
 ## How It Works
 
 ```
 lib/index.js       Host half: incrementally folds session logs, aggregates stats, serves via HTTP route /token-stats
 lib/client.js      Browser half: panel UI (shell module-table format, no build step)
-scripts/install.js One-command installer: copies package + writes composition row
+cordis.patch.yml   Bundle layer loaded by the dsh plugin manager
 ```
 
-**Data Source**: Harness `tokenUsage` / `sessionStats` projections (provider-reported values) combined with the plugin's incremental fold of session logs (`request/header` + `assistant/message` usage). Historical sessions are read once and cached; incremental updates only read events past the last watermark.
+**Data Source**: Harness `tokenUsage` / `sessionStats` projections (provider-reported values) combined with the plugin's incremental fold of session logs (`request/header` + `assistant/message` / `assistant/attempt` usage). Each poll obtains a consistent `sessionQuery.observeSession` snapshot and skips events already folded.
 
 **Plugin Loading Contract**:
 
@@ -88,13 +68,13 @@ scripts/install.js One-command installer: copies package + writes composition ro
 # Syntax check
 npm run check
 
-# Local install verification
-npm run install:local
+# Install this checkout into the web profile
+dsh plugin --profile web add .
 ```
 
 ## Source & License
 
-`dsh-token-stats` is developed by **H1a3x**, licensed under [MIT](LICENSE).
+This fork adapts **H1a3x**'s `dsh-token-stats` to DeepSeek Harness v0.1.7-rc.1 and retains the original [MIT](LICENSE) license and attribution.
 
 - Repository: https://github.com/H1a3x/dsh-token-stats
 - npm: https://www.npmjs.com/package/dsh-token-stats
