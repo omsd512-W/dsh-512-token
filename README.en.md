@@ -24,6 +24,7 @@ A floating token usage statistics panel for the [DeepSeek Harness](https://githu
 - **Session Details**: Per-session input / output / cache / hit rate / total / steps; expand to view bucketed stats, context pressure, and recent per-request records (time, provider / model, input, output, cache read, cache write)
 - **Panel Interaction**: Draggable, collapsible into a summary bar, reopen from a floating ball after closing
 - **Auto Refresh**: Data refreshes every 10 seconds; color scheme follows Harness light / dark theme
+- **First Load**: After restarting dsh, live-session stats appear first while archived sessions load in the background; progress refreshes every 3 seconds
 
 ## Installation
 

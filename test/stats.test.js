@@ -18,6 +18,7 @@ test('rc.1 session observations count settled attempts once', async () => {
   let disposals = 0
   let live = true
   const ctx = {
+    effect() {},
     get: (name) => ({
       sessionQuery: {
         listSessions: async () => [{ header: { id: 'session-1', createdAt: now }, live, persisted: true }],
@@ -50,4 +51,43 @@ test('rc.1 session observations count settled attempts once', async () => {
   await read()
   await read()
   assert.equal(disposals, 3)
+})
+
+test('cold history warms without blocking the first response', async () => {
+  const now = Date.now()
+  let route
+  let release
+  const observation = new Promise((resolve) => { release = resolve })
+  const ctx = {
+    effect() {},
+    logger: { warn() {} },
+    get: (name) => ({
+      sessionQuery: {
+        listSessions: async () => [{ header: { id: 'cold', createdAt: now }, live: false, persisted: true }],
+        observeSession: async () => observation,
+        readTitle: async () => ({ title: 'Cold' }),
+      },
+      llm: { listProviders: () => [], listConfigurableProviders: () => [] },
+    })[name],
+    inject: (_names, callback) => callback({ effect: (register) => register(), webServer: { register: (value) => { route = value } } }),
+  }
+  apply(ctx)
+  async function read() {
+    let payload
+    await route.handler({}, { setHeader() {}, end: (body) => { payload = JSON.parse(body) } })
+    return payload
+  }
+  const first = await read()
+  assert.equal(first.covered, 0)
+  assert.equal(first.warming, 1)
+  release({ events: [
+    { seq: 0, time: now, type: 'request/header', data: { header: { config: { provider: 'deepseek', model: 'chat' } } } },
+    { seq: 1, time: now, type: 'assistant/message', data: { turn: 0, step: 0, usage: { inputTokens: 2, outputTokens: 3 } } },
+    { seq: 2, time: now, type: 'step/end', data: { turn: 0, step: 0 } },
+  ], projections: { values: {} }, [Symbol.dispose]() {} })
+  await new Promise((resolve) => setImmediate(resolve))
+  const second = await read()
+  assert.equal(second.covered, 1)
+  assert.equal(second.warming, 0)
+  assert.equal(second.totals.grand, 5)
 })
