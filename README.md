@@ -53,7 +53,7 @@ lib/client.js    浏览器半：面板 UI（shell module-table 格式，无需�
 cordis.patch.yml   dsh 插件管理器加载的组合行
 ```
 
-**数据来源**：Harness 的 `tokenUsage` / `sessionStats` 投影（provider 上报值）叠加插件对会话日志的增量折叠（`request/header` + `assistant/message` / `assistant/attempt` 用量）。每次通过 `sessionQuery.observeSession` 读取一致的会话快照，折叠时跳过已处理的事件。
+**数据来源**：Harness 的 `tokenUsage` / `sessionStats` 投影（provider 上报值）叠加插件对会话日志的增量折叠（`request/header` + `assistant/message` / `assistant/attempt` 用量）。活动会话通过 `sessionQuery.observeSession` 读取一致的快照，已归档会话折叠一次后缓存。
 
 **插件装载契约**：
 

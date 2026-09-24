@@ -53,7 +53,7 @@ lib/client.js      Browser half: panel UI (shell module-table format, no build s
 cordis.patch.yml   Bundle layer loaded by the dsh plugin manager
 ```
 
-**Data Source**: Harness `tokenUsage` / `sessionStats` projections (provider-reported values) combined with the plugin's incremental fold of session logs (`request/header` + `assistant/message` / `assistant/attempt` usage). Each poll obtains a consistent `sessionQuery.observeSession` snapshot and skips events already folded.
+**Data Source**: Harness `tokenUsage` / `sessionStats` projections (provider-reported values) combined with the plugin's incremental fold of session logs (`request/header` + `assistant/message` / `assistant/attempt` usage). Live sessions use consistent `sessionQuery.observeSession` snapshots; archived sessions are folded once and cached.
 
 **Plugin Loading Contract**:
 

@@ -16,10 +16,11 @@ test('rc.1 session observations count settled attempts once', async () => {
   ]
   let route
   let disposals = 0
+  let live = true
   const ctx = {
     get: (name) => ({
       sessionQuery: {
-        listSessions: async () => [{ header: { id: 'session-1', createdAt: now }, live: true, persisted: true }],
+        listSessions: async () => [{ header: { id: 'session-1', createdAt: now }, live, persisted: true }],
         observeSession: async () => ({
           events,
           projections: { values: { tokenUsage: { uncachedInputTokens: 8, outputTokens: 11, cacheReadTokens: 0, cacheWriteTokens: 0 } } },
@@ -45,4 +46,8 @@ test('rc.1 session observations count settled attempts once', async () => {
   const second = await read()
   assert.equal(second.providers[0].total, 19)
   assert.equal(disposals, 2)
+  live = false
+  await read()
+  await read()
+  assert.equal(disposals, 3)
 })
