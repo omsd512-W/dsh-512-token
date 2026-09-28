@@ -21,7 +21,7 @@ A floating token usage statistics panel for the [DeepSeek Harness](https://githu
 - **Current Session Provider**: Automatically highlights the provider used by the current session with its cumulative usage
 - **Provider Breakdown**: Only shows providers you actually configured (from `llm-pi-ai` / `llm-deepseek` settings) plus routes that produced usage; click to expand per-model usage details
 - **Monthly Heatmap**: Daily usage squares for the current month (darker = more usage in dark mode, bluer = more in light mode); click any date to switch the entire panel to that day's data, click "All Usage" to return to the full view
-- **Session Details**: Per-session input / output / cache / hit rate / total / steps; expand to view bucketed stats, context pressure, and recent per-request records (time, provider / model, input, output, cache read, cache write)
+- **Session Details**: Per-session input / output / cache / hit rate / total / steps; expand to view bucketed stats, context pressure, and recent per-request records (time, provider / model, input, output, cache read, cache write). A forked session counts only its own usage after the fork; the part inherited from its parent is already counted there
 - **Panel Interaction**: Draggable, collapsible into a summary bar, reopen from a floating ball after closing
 - **Auto Refresh**: Data refreshes every 10 seconds; color scheme follows Harness light / dark theme
 - **First Load**: After restarting dsh, live-session stats appear first while archived sessions load in the background; progress refreshes every 3 seconds
@@ -54,7 +54,7 @@ lib/client.js      Browser half: panel UI (shell module-table format, no build s
 cordis.patch.yml   Bundle layer loaded by the dsh plugin manager
 ```
 
-**Data Source**: Harness `tokenUsage` / `sessionStats` projections (provider-reported values) combined with the plugin's incremental fold of session logs (`request/header` + `assistant/message` / `assistant/attempt` usage). Live sessions use consistent `sessionQuery.observeSession` snapshots; archived sessions are folded once and cached.
+**Data Source**: Harness `tokenUsage` / `sessionStats` projections (provider-reported values) combined with the plugin's incremental fold of session logs (`request/header` + `assistant/message` / `assistant/attempt` usage). Live sessions use consistent `sessionQuery.observeSession` snapshots; archived sessions are folded once and cached. A forked session's log starts with a copy of its parent's events up to the fork point (cut by `session/end-seed { inherited: true }`); the plugin treats usage before that cut as inherited and leaves it out while the parent is covered, or counts it once when the parent is deleted or outside the 200 most recent sessions.
 
 **Plugin Loading Contract**:
 
