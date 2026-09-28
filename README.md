@@ -2,29 +2,26 @@
 
 # dsh-512-token
 
-为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) v0.1.7-rc.1 Web 界面提供浮动的 Token 用量统计面板。安装后页面右下角出现可拖动的浮层，实时展示输入 / 输出 / 缓存 / 命中率 / 按提供商与模型维度的用量明细，以及当月每日热力图和会话级逐请求记录。
+为 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) v0.2.0-rc.1 Web 界面提供 Token 用量统计页。安装后在 **设置 → Token 用量** 中查看全部会话的输入 / 输出 / 缓存 / 命中率、按提供商与模型的用量明细、当月每日热力图，以及会话级逐请求记录。
 
 <table>
   <tr>
-    <td><img src="docs/panel-1.png" alt="面板截图" width="400" /></td>
-    <td><img src="docs/panel-2.png" alt="面板截图" width="400" /></td>
-  </tr>
-  <tr>
-    <td><img src="docs/panel-4.png" alt="悬浮球" width="400" /></td>
-    <td><img src="docs/panel-3.png" alt="折叠状态" width="400" /></td>
+    <td><img src="docs/panel-1.png" alt="统计内容" width="400" /></td>
+    <td><img src="docs/panel-2.png" alt="统计内容" width="400" /></td>
   </tr>
 </table>
 
+> 截图为 0.3 版浮窗，0.4 起同样的内容显示在设置页中。
+
 ## 功能
 
-- **总用量概览**：输入、输出、总计、缓存读取 / 写入、缓存命中率、会话数、步数
-- **当前会话提供商**：自动高亮当前会话使用的提供商及其累计用量
-- **提供商明细**：只显示你实际配置的提供商（来自 `llm-pi-ai` / `llm-deepseek` 设置节）及产生过用量的路由；点击展开可查看每个模型的独立用量
-- **本月热力图**：当月 1 号至月末的每日用量方格（深色模式用量越多越亮，浅色模式越多越蓝）；点击任意日期，整个面板切换为该日数据，点「全部用量」返回全量视图
-- **会话明细**：每个会话的输入 / 输出 / 缓存 / 命中率 / 总计 / 步数，展开可查看分桶统计、上下文占用与最近逐请求记录（时间、提供商 / 模型、输入、输出、缓存读、缓存写）。fork 出来的会话只计 fork 之后自己的用量，从原会话继承的部分已计入原会话，不再重复统计
-- **面板交互**：可拖动、可折叠为摘要长条、关闭后从悬浮球重新打开
-- **自动刷新**：数据每 10 秒自动刷新；配色自动跟随 Harness 深浅主题
-- **首次加载**：重启 dsh 后先显示活动会话统计，历史会话在后台补齐；加载期间每 3 秒更新进度
+- **总用量概览**：输入、输出、总计、缓存读取 / 写入、缓存命中率、会话数、步数、轮次
+- **统计全部会话**：包括历史会话、fork 会话和子代理会话，没有数量上限
+- **提供商明细**：显示你配置的提供商（来自 `llm-pi-ai` / `llm-deepseek` 设置节）及产生过用量的路由；点击展开可查看每个模型的用量
+- **本月热力图**：当月 1 号至月末的每日用量方格；点击任意日期，整页切换为该日数据，点「全部用量」返回
+- **会话明细**：每个会话的输入 / 输出 / 缓存 / 命中率 / 总计 / 步数，展开可查看分桶统计、上下文占用、fork 继承情况与最近逐请求记录
+- **fork 只计一次**：fork 出来的会话只计 fork 之后自己的用量，从原会话继承的部分已计入原会话；原会话被删除时，继承部分计入 fork 会话一次
+- **跟随界面**：语言跟随 dsh 的中英文设置，配色跟随深浅主题；设置页打开时每 10 秒刷新
 
 ## 安装
 
@@ -33,6 +30,8 @@ dsh plugin --profile web add github:omsd512-W/dsh-512-token
 ```
 
 插件自带 `cordis.patch.yml` 组合层，`dsh plugin` 会把它加入 `web` profile。完成后重启 dsh 并刷新页面。
+
+需要 dsh 0.2.0-rc.1 或同一 0.2 系列的更新版本（依赖其会话投影接口）；版本不匹配时 dsh 会停用本插件，而不是让它出错。
 
 ### 从源码本地安装
 
@@ -44,29 +43,36 @@ dsh plugin --profile web add .
 
 ## 卸载
 
-运行 `dsh plugin --profile web remove dsh-512-token`，然后重启 dsh。
+运行 `dsh plugin --profile web remove dsh-512-token`，然后重启 dsh。可以一并删除 `~/.dsh/storages/dsh-512-token/`。
 
 ## 工作原理
 
 ```
-lib/index.js     宿主半：增量折叠会话日志，聚合统计数据，通过 HTTP 路由 /dsh-512-token 提供查询
-lib/client.js    浏览器半：面板 UI（shell module-table 格式，无需构建步骤）
+lib/index.js       宿主半：注册会话投影，读取投影缓存，通过 HTTP 路由 /dsh-512-token 提供数据
+lib/client.js      浏览器半：设置页 UI（shell module-table 格式，无需构建步骤）
 cordis.patch.yml   dsh 插件管理器加载的组合行
 ```
 
-**数据来源**：Harness 的 `tokenUsage` / `sessionStats` 投影（provider 上报值）叠加插件对会话日志的增量折叠（`request/header` + `assistant/message` / `assistant/attempt` 用量）。活动会话通过 `sessionQuery.observeSession` 读取一致的快照，已归档会话折叠一次后缓存。fork 会话的日志开头复制了原会话 fork 点之前的事件（以 `session/end-seed { inherited: true }` 分界），插件把分界之前的用量视为继承部分：原会话在统计范围内时不计入，原会话已删除或不在最近 200 个会话内时计入一次。
+**增量统计**：每个会话的用量是一个 dsh 会话投影（`sessionProjections`，只在宿主端，不随会话数据发往浏览器）。
+
+- 运行中的会话：dsh 每追加一条事件就更新一次投影，插件直接读取当前值。
+- 历史会话：dsh 在每轮结束、会话关闭时把投影写入持久缓存（`sessionProjectionCache`），插件直接读缓存，不读日志。
+- 没有缓存的会话（首次安装、统计逻辑升级后）在后台完整读取一次，结果写回缓存，以后不再重读。
+- 缓存可能落后于日志（例如 dsh 在一轮中途被强制关闭，或会话在另一个 profile 中继续过）。插件在 `~/.dsh/storages/dsh-512-token/verified.json` 记录每个缓存值核对时的日志大小；日志大小变化时，先显示缓存值，同时在后台重新读取这一个会话。
+
+**数据口径**：用量取自日志里模型上报的值（`request/header` 确定提供商与模型，`assistant/message` / `assistant/attempt` 的 usage），同一步里的重试按 dsh token-meter 的替换规则只计最终一次。fork 会话继承的前缀长度由 dsh 直接提供（inheritedEventCount），旧格式日志则按 `session/end-seed { inherited: true }` 标记分界。
 
 **插件装载契约**：
 
-- `package.json` 声明 `dsh.client.platform = "web"` 及 `inject` 依赖，宿主扫描器据此生成 `window.__DSH_BOOT__` 图行并挂载 `/plugins/<id>/client.js` 路由
-- 浏览器半以模块表格式打包，工厂返回 `{ apply, inject }`，服务依赖以导出的 `inject` 为准
-- UI 入口通过 `ctx.slots.inject('shell.overlay', …)` 注入为 root 作用域浮层
-- 热更新边界：`lib/client.js` 内容变化刷新页面即生效；`dsh.client` 声明变化需要重启 dsh
+- `package.json` 声明 `dsh.client.platform = "web"` 及 `inject` 依赖，宿主扫描器据此挂载 `/plugins/<id>/client.js`
+- 浏览器半以模块表格式打包，工厂返回 `{ apply, inject }`
+- UI 通过 `ctx.slots.inject('settings.section', …)` 注册为设置页（id `dsh-512-token`，排在内置页面之后）
+- 修改统计逻辑时递增 `lib/index.js` 中的 `STATE_VERSION`，旧缓存自动失效并在后台重建
 
 ## 开发
 
 ```bash
-# 语法检查
+# 语法检查与测试
 npm run check
 
 # 从当前目录安装到 web profile
@@ -75,7 +81,7 @@ dsh plugin --profile web add .
 
 ## 来源与版权
 
-本项目基于作者 **H1a3x** 的 `dsh-token-stats`，适配 DeepSeek Harness v0.1.7-rc.1；沿用 [MIT](LICENSE) 许可证并保留原作者署名。
+本项目基于作者 **H1a3x** 的 `dsh-token-stats`；沿用 [MIT](LICENSE) 许可证并保留原作者署名。
 
 - 源码仓库：https://github.com/H1a3x/dsh-token-stats
 - npm 包：https://www.npmjs.com/package/dsh-token-stats

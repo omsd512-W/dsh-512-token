@@ -1,7 +1,7 @@
 {
   "name": "dsh-512-token",
-  "version": "0.3.1",
-  "description": "Floating draggable token usage statistics panel for DeepSeek Harness: totals, cache & hit rate, per-provider and per-model usage, current-month heatmap with per-day view, per-session detail and per-request records.",
+  "version": "0.4.0",
+  "description": "Token usage statistics page in DeepSeek Harness Settings: totals, cache & hit rate, per-provider and per-model usage, current-month heatmap with per-day view, per-session detail and per-request records. Kept incrementally as a dsh session projection over every session.",
   "type": "module",
   "main": "lib/index.js",
   "exports": {
@@ -23,9 +23,9 @@
     "client": {
       "platform": "web",
       "inject": [
-        "@deepseek-ai/dsh-client-ui-renderer",
+        "@deepseek-ai/dsh-client-locale",
+        "@deepseek-ai/dsh-client-ui-settings",
         "@deepseek-ai/dsh-client-ui-layout",
-        "@deepseek-ai/dsh-client-ui-session",
         "@deepseek-ai/dsh-client-ui-theme"
       ]
     }
@@ -41,7 +41,8 @@
     "token",
     "usage",
     "statistics",
-    "panel"
+    "settings",
+    "projection"
   ],
   "license": "MIT",
   "repository": {
@@ -50,6 +51,11 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "^4.0.1",
+    "@deepseek-ai/dsh-host-webserver": "^0.2.0-rc.1",
+    "@deepseek-ai/dsh-session-projection": "^0.2.0-rc.1",
+    "@deepseek-ai/dsh-session-projection-cache": "^0.2.0-rc.1",
+    "@deepseek-ai/dsh-session-query": "^0.2.0-rc.1",
+    "@deepseek-ai/dsh-client-ui-settings": "^0.2.0-rc.1",
     "react": "^18.0.0 || ^19.0.0"
   }
 }

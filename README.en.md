@@ -2,39 +2,38 @@
 
 # dsh-512-token
 
-A floating token usage statistics panel for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) v0.1.7-rc.1 Web interface. After installation, a draggable overlay appears in the bottom-right corner, displaying real-time input / output / cache / hit rate, per-provider and per-model usage breakdowns, a current-month daily heatmap, and per-session request-level records.
+A token usage statistics page for the [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) v0.2.0-rc.1 web UI. After installing, open **Settings → Token Usage** to see input / output / cache / hit rate across all sessions, usage per provider and model, a daily heatmap for the current month, and per-session request records.
 
 <table>
   <tr>
-    <td><img src="docs/panel-1.png" alt="Panel" width="400" /></td>
-    <td><img src="docs/panel-2.png" alt="Panel" width="400" /></td>
-  </tr>
-  <tr>
-    <td><img src="docs/panel-4.png" alt="Floating ball" width="400" /></td>
-    <td><img src="docs/panel-3.png" alt="Collapsed" width="400" /></td>
+    <td><img src="docs/panel-1.png" alt="Stats" width="400" /></td>
+    <td><img src="docs/panel-2.png" alt="Stats" width="400" /></td>
   </tr>
 </table>
 
+> The screenshots show the 0.3 floating panel; since 0.4 the same content lives in Settings.
+
 ## Features
 
-- **Total Overview**: Input, output, total, cache read / write, cache hit rate, session count, step count
-- **Current Session Provider**: Automatically highlights the provider used by the current session with its cumulative usage
-- **Provider Breakdown**: Only shows providers you actually configured (from `llm-pi-ai` / `llm-deepseek` settings) plus routes that produced usage; click to expand per-model usage details
-- **Monthly Heatmap**: Daily usage squares for the current month (darker = more usage in dark mode, bluer = more in light mode); click any date to switch the entire panel to that day's data, click "All Usage" to return to the full view
-- **Session Details**: Per-session input / output / cache / hit rate / total / steps; expand to view bucketed stats, context pressure, and recent per-request records (time, provider / model, input, output, cache read, cache write). A forked session counts only its own usage after the fork; the part inherited from its parent is already counted there
-- **Panel Interaction**: Draggable, collapsible into a summary bar, reopen from a floating ball after closing
-- **Auto Refresh**: Data refreshes every 10 seconds; color scheme follows Harness light / dark theme
-- **First Load**: After restarting dsh, live-session stats appear first while archived sessions load in the background; progress refreshes every 3 seconds
+- **Overview**: input, output, total, cache read / write, cache hit rate, sessions, steps, turns
+- **Every session counted**: history, forks and subagent sessions, with no cap
+- **Providers**: the providers you configured (from the `llm-pi-ai` / `llm-deepseek` settings sections) plus any route that carried usage; expand one for per-model usage
+- **Monthly heatmap**: one cell per day of the current month; click a day to switch the whole page to that day, click "All Usage" to go back
+- **Sessions**: input / output / cache / hit rate / total / steps per session; expand a row for buckets, context usage, fork inheritance and recent request records
+- **Forks counted once**: a forked session counts only its own work after the fork; the part inherited from its parent is counted in the parent, or once in the fork if the parent was deleted
+- **Fits the UI**: language follows dsh's Chinese/English setting, colors follow the light/dark theme; refreshes every 10 seconds while the page is open
 
-## Installation
+## Install
 
 ```bash
 dsh plugin --profile web add github:omsd512-W/dsh-512-token
 ```
 
-The package contributes its own `cordis.patch.yml` bundle layer. Restart dsh and refresh the page after installation.
+The package ships a `cordis.patch.yml` composition layer that `dsh plugin` adds to the `web` profile. Restart dsh and reload the page afterwards.
 
-### Install from Source
+Requires dsh 0.2.0-rc.1 or a later 0.2 release (it uses the session projection API); on an incompatible version dsh disables the plugin instead of letting it fail.
+
+### Install from source
 
 ```bash
 git clone https://github.com/omsd512-W/dsh-512-token.git
@@ -44,43 +43,50 @@ dsh plugin --profile web add .
 
 ## Uninstall
 
-Run `dsh plugin --profile web remove dsh-512-token`, then restart dsh.
+Run `dsh plugin --profile web remove dsh-512-token` and restart dsh. You can also delete `~/.dsh/storages/dsh-512-token/`.
 
-## How It Works
+## How it works
 
 ```
-lib/index.js       Host half: incrementally folds session logs, aggregates stats, serves via HTTP route /dsh-512-token
-lib/client.js      Browser half: panel UI (shell module-table format, no build step)
-cordis.patch.yml   Bundle layer loaded by the dsh plugin manager
+lib/index.js       host half: registers the session projection, reads the projection cache, serves /dsh-512-token
+lib/client.js      browser half: the Settings page (shell module-table format, no build step)
+cordis.patch.yml   composition row loaded by the dsh plugin manager
 ```
 
-**Data Source**: Harness `tokenUsage` / `sessionStats` projections (provider-reported values) combined with the plugin's incremental fold of session logs (`request/header` + `assistant/message` / `assistant/attempt` usage). Live sessions use consistent `sessionQuery.observeSession` snapshots; archived sessions are folded once and cached. A forked session's log starts with a copy of its parent's events up to the fork point (cut by `session/end-seed { inherited: true }`); the plugin treats usage before that cut as inherited and leaves it out while the parent is covered, or counts it once when the parent is deleted or outside the 200 most recent sessions.
+**Incremental**: each session's usage is a dsh session projection (`sessionProjections`, host-only, never sent to the browser with session data).
 
-**Plugin Loading Contract**:
+- Live sessions: dsh updates the projection on every appended event; the plugin reads the current value.
+- History: dsh checkpoints projections into its persisted cache (`sessionProjectionCache`) at every turn end and when a session closes; the plugin reads that cache instead of the logs.
+- A session without a cached value (first install, or after the fold logic changes) is read once in the background and the result is written back to the cache, so it is never read again.
+- A cached value can lag its log (dsh killed mid-turn, or the session continued under another profile). `~/.dsh/storages/dsh-512-token/verified.json` records the log size each cached value was checked against; when the size changes, the cached value is shown while that one session is re-read in the background.
 
-- `package.json` declares `dsh.client.platform = "web"` and `inject` dependencies; the host scanner generates `window.__DSH_BOOT__` graph rows and mounts the `/plugins/<id>/client.js` route
-- The browser half is bundled in module-table format; the factory returns `{ apply, inject }`, service dependencies follow the exported `inject`
-- UI entry injected via `ctx.slots.inject('shell.overlay', …)` as a root-scope overlay
-- Hot reload boundary: `lib/client.js` changes take effect on page refresh; `dsh.client` declaration changes require a dsh restart
+**What is counted**: provider-reported usage from the log (`request/header` for provider and model, usage on `assistant/message` / `assistant/attempt`); retries within one step follow dsh token-meter's replacement rule, so only the final attempt counts. A fork's inherited prefix length comes straight from dsh (inheritedEventCount); older logs fall back to the `session/end-seed { inherited: true }` marker.
+
+**Loading contract**:
+
+- `package.json` declares `dsh.client.platform = "web"` and its `inject` dependencies; the host scanner mounts `/plugins/<id>/client.js`
+- The browser half is bundled in module-table format; the factory returns `{ apply, inject }`
+- The UI registers a Settings page through `ctx.slots.inject('settings.section', …)` (id `dsh-512-token`, after the built-in pages)
+- When changing the fold logic, bump `STATE_VERSION` in `lib/index.js`; old cached values are then ignored and rebuilt in the background
 
 ## Development
 
 ```bash
-# Syntax check
+# Syntax check and tests
 npm run check
 
-# Install this checkout into the web profile
+# Install from the current directory into the web profile
 dsh plugin --profile web add .
 ```
 
-## Source & License
+## Credits
 
-This fork adapts **H1a3x**'s `dsh-token-stats` to DeepSeek Harness v0.1.7-rc.1 and retains the original [MIT](LICENSE) license and attribution.
+Based on `dsh-token-stats` by **H1a3x**; released under the same [MIT](LICENSE) license with the original attribution kept.
 
-- Repository: https://github.com/H1a3x/dsh-token-stats
+- Source: https://github.com/H1a3x/dsh-token-stats
 - npm: https://www.npmjs.com/package/dsh-token-stats
 
-Third-party code must retain its original LICENSE and attribution; active third-party dependencies with upstream should be referenced via npm dependencies, not copied.
+Third-party code brought in must keep its original LICENSE and attribution; active upstream dependencies are referenced through npm rather than copied.
 
 ## Links
 
